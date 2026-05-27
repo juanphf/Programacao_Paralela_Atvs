@@ -1,0 +1,9 @@
+Implemente um programa em C que calcule uma 
+aproximação de pi usando uma serie matematica,
+variando o número de iterações e medindo o tempo 
+de execução. Compare os valores obtidos com o valor
+real de pi e analise como a acuracia melhora com
+mais processamento. Reflita sobre como esse 
+comportamento se repete em aplicações reais que
+demandam resultados cada vez mais precisos, como
+simulações fisicas e inteligencia artificial.
