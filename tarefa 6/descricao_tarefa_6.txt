@@ -1,0 +1,27 @@
+Implemente em C a estimativa estocástica de pi.
+Paralelize com '#pragma omp parallel for' e explique
+o resultado incorreto. Corrija a condição de corrida
+utilizando o '#pragma omp critical' e reestruturando
+com '#pragma omp parallel' seguido de '#pragma omp for'
+e aplicando as cláusulas 'private', 'firstprivate', 
+'lastprivate' e 'shared'. Teste diferentes combinações
+e explique como cada cláusula afeta o comportamento
+do programa. Comente também como cláusula 'default(none)'
+pode ajudar a tomar o escopo mais claro em programas complexos.
+
+
+Exemplo de estimativa estocástica é um circulo dentro
+de um quadrado.
+
+- parallel e parallel for
+- escopo de variaveis
+- condição de corrida e regioes criticas
+
+No relatorio (Defesa):
+Explicar o que é e oq faz:
+#pragma omp parallel for
+#pragma omp critical
+private
+firstprivate
+lastprivate
+shared
