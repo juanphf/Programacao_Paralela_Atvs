@@ -4,7 +4,7 @@
 
 
 int main(){
-    long long N = 10000000000;
+    long long N = 10000000000; // 10 Bi
     long long checkpoint = 1000;
 
     double pi_real = 3.141592653589793;
@@ -24,7 +24,7 @@ int main(){
             double tempo_gasto = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
             double erro = fabs(pi_real - pi_aprox);
 
-            printf("Iterações: %11lld | Pi: %.10f  | Erro: %.10f  | Tempo: %f s\n", checkpoint, pi_aprox, erro, tempo_gasto);
+            printf("Iteracoes: %11lld | Pi: %.10f  | Erro: %.10f  | Tempo: %f s\n", checkpoint, pi_aprox, erro, tempo_gasto);
 
             checkpoint *=10;
         }
