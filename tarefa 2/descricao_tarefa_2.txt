@@ -1,0 +1,13 @@
+Tarefa 2 - 21/05
+
+Implemente três laços em C para investigar os efeitos
+do paralelismo ao nível de instrução (ILP):
+1) Inicialize um vetor com um cálculo simples
+2) Some seus elementos de forma acumulativa, criando
+dependencia entre as iterações
+3) Quebre essa dependencia utilizando mútiplas variaveis.
+
+Compare o tempo de execução das versões compiladas com
+diferentes níveis de otimização (O0, O2, O3) e analise
+como o estilo do código e as dependencias influenciam
+o desempenho
