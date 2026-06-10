@@ -1,111 +1,98 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <omp.h>
-#include <math.h>
+#include <time.h>
 
-// Função para estimar Pi usando o método de Monte Carlo (Serial)
-void estimativa_pi_serial(long long num_pontos) {
-    long long pontos_no_circulo = 0;
-    double inicio = omp_get_wtime();
+#ifdef _WIN32
+int rand_r(unsigned int *seedp) {
+    *seedp = *seedp * 1103515245 + 12345;
+    return (unsigned int)(*seedp / 65536) % 32768;
+}
+#endif
 
-    unsigned int seed = (unsigned int)time(NULL);
+int main() {
+    long total_pontos = 10000000;
+    long pontos_circulo;
+    double pi;
+    struct timespec start, end;
+    double tempo_gasto;
 
-    for (long long i = 0; i < num_pontos; i++) {
+    pontos_circulo = 0;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    
+    #pragma omp parallel for
+    for (long i = 0; i < total_pontos; i++) {
+        unsigned int seed = i;
         double x = (double)rand_r(&seed) / RAND_MAX;
         double y = (double)rand_r(&seed) / RAND_MAX;
+        
         if (x * x + y * y <= 1.0) {
-            pontos_no_circulo++;
+            pontos_circulo++;
         }
     }
+    
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    tempo_gasto = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+    pi = 4.0 * pontos_circulo / total_pontos;
+    printf("Metodo 1 (Incorreto - Condicao de Corrida): %f | Tempo: %f s\n", pi, tempo_gasto);
 
-    double pi_estimado = 4.0 * pontos_no_circulo / num_pontos;
-    double fim = omp_get_wtime();
-    printf("Serial: Pi estimado = %f, Tempo = %f segundos\n", pi_estimado, fim - inicio);
-}
-
-// Versão paralela com condição de corrida
-void estimativa_pi_corrida(long long num_pontos) {
-    long long pontos_no_circulo = 0;
-    double inicio = omp_get_wtime();
-
+    pontos_circulo = 0;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    
     #pragma omp parallel for
-    for (long long i = 0; i < num_pontos; i++) {
-        unsigned int seed = (unsigned int)time(NULL) + omp_get_thread_num();
+    for (long i = 0; i < total_pontos; i++) {
+        unsigned int seed = i;
         double x = (double)rand_r(&seed) / RAND_MAX;
         double y = (double)rand_r(&seed) / RAND_MAX;
-        if (x * x + y * y <= 1.0) {
-            pontos_no_circulo++; // Condição de corrida
-        }
-    }
-
-    double pi_estimado = 4.0 * pontos_no_circulo / num_pontos;
-    double fim = omp_get_wtime();
-    printf("Condição de Corrida: Pi estimado = %f, Tempo = %f segundos\n", pi_estimado, fim - inicio);
-}
-
-// Versão corrigida com #pragma omp critical
-void estimativa_pi_critical(long long num_pontos) {
-    long long pontos_no_circulo = 0;
-    double inicio = omp_get_wtime();
-
-    #pragma omp parallel for
-    for (long long i = 0; i < num_pontos; i++) {
-        unsigned int seed = (unsigned int)time(NULL) + omp_get_thread_num();
-        double x = (double)rand_r(&seed) / RAND_MAX;
-        double y = (double)rand_r(&seed) / RAND_MAX;
+        
         if (x * x + y * y <= 1.0) {
             #pragma omp critical
             {
-                pontos_no_circulo++;
+                pontos_circulo++;
             }
         }
     }
+    
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    tempo_gasto = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+    pi = 4.0 * pontos_circulo / total_pontos;
+    printf("Metodo 2 (Corrigido com Critical lento): %f | Tempo: %f s\n", pi, tempo_gasto);
 
-    double pi_estimado = 4.0 * pontos_no_circulo / num_pontos;
-    double fim = omp_get_wtime();
-    printf("Critical: Pi estimado = %f, Tempo = %f segundos\n", pi_estimado, fim - inicio);
-}
+    pontos_circulo = 0;
+    long i;
+    long last_i = 0;
+    unsigned int seed_base = 12345;
+    double x, y;
 
-// Versão com parallel, for e cláusulas de escopo
-void estimativa_pi_escopo(long long num_pontos) {
-    long long pontos_no_circulo = 0;
-    int var_privada; // Exemplo de variável para cláusulas
-    double inicio = omp_get_wtime();
+    clock_gettime(CLOCK_MONOTONIC, &start);
 
-    #pragma omp parallel default(none) private(var_privada) shared(num_pontos, pontos_no_circulo)
+    #pragma omp parallel default(none) shared(total_pontos, pontos_circulo, last_i) firstprivate(seed_base) private(x, y, i)
     {
-        var_privada = 0; // Cada thread tem sua própria cópia
-        unsigned int seed = (unsigned int)time(NULL) + omp_get_thread_num();
+        long pontos_locais = 0;
 
-        #pragma omp for
-        for (long long i = 0; i < num_pontos; i++) {
-            double x = (double)rand_r(&seed) / RAND_MAX;
-            double y = (double)rand_r(&seed) / RAND_MAX;
+        #pragma omp for lastprivate(last_i)
+        for (i = 0; i < total_pontos; i++) {
+            unsigned int seed = seed_base + i;
+            x = (double)rand_r(&seed) / RAND_MAX;
+            y = (double)rand_r(&seed) / RAND_MAX;
+
             if (x * x + y * y <= 1.0) {
-                #pragma omp atomic
-                pontos_no_circulo++;
+                pontos_locais++;
             }
+            last_i = i;
+        }
+
+        #pragma omp critical
+        {
+            pontos_circulo += pontos_locais;
         }
     }
-
-    double pi_estimado = 4.0 * pontos_no_circulo / num_pontos;
-    double fim = omp_get_wtime();
-    printf("Escopo (com atomic): Pi estimado = %f, Tempo = %f segundos\n", pi_estimado, fim - inicio);
-}
-
-
-int main() {
-    long long num_pontos = 10000000; // 10 milhões de pontos
-
-    printf("Estimando Pi com %lld pontos.\n\n", num_pontos);
-
-    estimativa_pi_serial(num_pontos);
-    estimativa_pi_corrida(num_pontos);
-    estimativa_pi_critical(num_pontos);
-    estimativa_pi_escopo(num_pontos);
-
-    printf("\nNota: A versão 'Condição de Corrida' provavelmente mostrará um resultado incorreto.\n");
+    
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    tempo_gasto = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+    pi = 4.0 * pontos_circulo / total_pontos;
+    printf("Metodo 3 (Reestruturado com Clausulas): %f | Tempo: %f s\n", pi, tempo_gasto);
+    printf("Ultima iteracao processada (lastprivate): %ld\n", last_i);
 
     return 0;
 }
